@@ -1,0 +1,34 @@
+.minion {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  z-index: 2;
+}
+
+.sprite {
+  width: 100%;
+  height: 100%;
+  background: #c44;
+  border: 2px solid #f66;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 80, 80, 0.5);
+}
+
+.hpBar {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.hpFill {
+  height: 100%;
+  background: #e44;
+  transition: width 0.1s linear;
+}

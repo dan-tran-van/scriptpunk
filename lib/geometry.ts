@@ -1,4 +1,10 @@
-import { HUD_PADDING } from "./constants";
+import { BOSS_HITBOX, HUD_PADDING, PLAYER_HITBOX } from "./constants";
+import {
+  getMapWorldSize,
+  isWalkableWorld,
+  tileToWorldCenter,
+  type MapData,
+} from "./map";
 import type { ArenaSize, Vec2 } from "./gameState";
 
 export function distance(a: Vec2, b: Vec2): number {
@@ -36,6 +42,77 @@ export function getPlayerSpawn(arena: ArenaSize): Vec2 {
 
 export function getBossSpawn(arena: ArenaSize): Vec2 {
   return { x: arena.width / 2, y: HUD_PADDING.top + 20 };
+}
+
+export function findWalkableNear(
+  map: MapData,
+  target: Vec2,
+  searchRadius: number,
+  entityRadius: number,
+): Vec2 {
+  if (isWalkableWorld(map, target.x, target.y, entityRadius)) {
+    return target;
+  }
+
+  const step = 16;
+  for (let r = step; r <= searchRadius; r += step) {
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+      const x = target.x + Math.cos(angle) * r;
+      const y = target.y + Math.sin(angle) * r;
+      if (isWalkableWorld(map, x, y, entityRadius)) {
+        return { x, y };
+      }
+    }
+  }
+
+  const world = getMapWorldSize(map);
+  const cx = world.width / 2;
+  const cy = world.height / 2;
+  const tx = Math.floor(cx / 32);
+  const ty = Math.floor(cy / 32);
+  return tileToWorldCenter(tx, ty);
+}
+
+export function randomWalkablePosition(
+  map: MapData,
+  entityRadius: number,
+  exclude: Vec2[] = [],
+  minDist = 120,
+): Vec2 {
+  const world = getMapWorldSize(map);
+  for (let i = 0; i < 80; i++) {
+    const x = entityRadius + Math.random() * (world.width - entityRadius * 2);
+    const y = entityRadius + Math.random() * (world.height - entityRadius * 2);
+    if (!isWalkableWorld(map, x, y, entityRadius)) continue;
+    if (exclude.some((e) => distance({ x, y }, e) < minDist)) continue;
+    return { x, y };
+  }
+  return findWalkableNear(
+    map,
+    { x: world.width / 2, y: world.height / 2 },
+    400,
+    entityRadius,
+  );
+}
+
+export function getPlayerSpawnForMap(map: MapData): Vec2 {
+  const world = getMapWorldSize(map);
+  return findWalkableNear(
+    map,
+    { x: world.width / 2, y: world.height - 96 },
+    300,
+    PLAYER_HITBOX,
+  );
+}
+
+export function getBossSpawnForMap(map: MapData): Vec2 {
+  const world = getMapWorldSize(map);
+  return findWalkableNear(
+    map,
+    { x: world.width / 2, y: 96 },
+    300,
+    BOSS_HITBOX,
+  );
 }
 
 export function randomPositionInArena(arena: ArenaSize): Vec2 {

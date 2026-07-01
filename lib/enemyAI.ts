@@ -3,13 +3,18 @@ import {
   BOSS_DRIFT_INTERVAL_MS,
 } from "./constants";
 import { getBossSkillById, pickRandomBossSkillFromPool } from "./bossSkills";
-import { clampPosition, distance, normalizeInput, randomPositionInArena } from "./geometry";
+import { distance, normalizeInput, randomWalkablePosition } from "./geometry";
+import { getMapData } from "./maps";
+import { getMapWorldSize, resolveMovement } from "./map";
+import { BOSS_HITBOX } from "./constants";
 import { appendLog, type GameState, type Vec2 } from "./gameState";
 import { getLevelConfig } from "./levels";
 import { spawnBossSkill } from "./projectiles";
 
 export function tickEnemy(state: GameState, deltaMs: number): GameState {
-  if (state.phase !== "combat" && state.phase !== "input") return state;
+  if (state.phase !== "combat" && state.phase !== "input" && state.phase !== "targeting") {
+    return state;
+  }
 
   let next = tickBossDrift(state, deltaMs);
   next = tickBossAttack(next, deltaMs);
@@ -24,6 +29,8 @@ function directionToward(from: Vec2, to: Vec2) {
 
 function tickBossDrift(state: GameState, deltaMs: number): GameState {
   const config = getLevelConfig(state.level);
+  const map = getMapData(state.mapId);
+  const world = getMapWorldSize(map);
   let { bossDriftTimer, bossDriftTarget, enemyPosition, bossState } = state;
 
   if (bossState === "windup" || bossState === "attacking") {
@@ -33,7 +40,10 @@ function tickBossDrift(state: GameState, deltaMs: number): GameState {
   bossDriftTimer -= deltaMs;
   if (bossDriftTimer <= 0) {
     bossDriftTimer = BOSS_DRIFT_INTERVAL_MS;
-    bossDriftTarget = randomPositionInArena(state.arena);
+    bossDriftTarget = randomWalkablePosition(map, BOSS_HITBOX, [
+      state.playerPosition,
+      enemyPosition,
+    ]);
   }
 
   let bossDirection = state.bossDirection;
@@ -46,12 +56,16 @@ function tickBossDrift(state: GameState, deltaMs: number): GameState {
     } else {
       bossDirection = directionToward(enemyPosition, bossDriftTarget);
       const step = Math.min(config.bossDriftSpeed * deltaMs, dist);
-      enemyPosition = clampPosition(
-        {
-          x: enemyPosition.x + ((bossDriftTarget.x - enemyPosition.x) / dist) * step,
-          y: enemyPosition.y + ((bossDriftTarget.y - enemyPosition.y) / dist) * step,
-        },
-        state.arena,
+      const proposed = {
+        x: enemyPosition.x + ((bossDriftTarget.x - enemyPosition.x) / dist) * step,
+        y: enemyPosition.y + ((bossDriftTarget.y - enemyPosition.y) / dist) * step,
+      };
+      enemyPosition = resolveMovement(
+        map,
+        enemyPosition,
+        proposed,
+        BOSS_HITBOX,
+        world,
       );
       bossState = "moving";
     }

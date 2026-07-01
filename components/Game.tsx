@@ -17,6 +17,8 @@ import { PLAYER_MAX_HP } from "@/lib/constants";
 import Battlefield from "./Battlefield";
 import Player from "./Player";
 import EnemyBoss from "./EnemyBoss";
+import Minion from "./Minion";
+import TargetReticle from "./TargetReticle";
 import SkillSystem from "./SkillSystem";
 import SkillInput from "./SkillInput";
 import CombatLog from "./CombatLog";
@@ -120,6 +122,17 @@ export default function Game() {
         return;
       }
 
+      if (key === "escape" && phaseRef.current === "targeting") {
+        dispatch({ type: "CANCEL_TARGET" });
+        return;
+      }
+
+      if (key === "enter" && phaseRef.current === "targeting") {
+        e.preventDefault();
+        dispatch({ type: "CONFIRM_TARGET" });
+        return;
+      }
+
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -137,12 +150,12 @@ export default function Game() {
         }
       }
 
-      if (phaseRef.current !== "combat") return;
-
-      if (MOVEMENT_KEYS.includes(key)) {
-        e.preventDefault();
-        keysRef.current.add(key);
-        updateMovement();
+      if (phaseRef.current === "combat" || phaseRef.current === "targeting") {
+        if (MOVEMENT_KEYS.includes(key)) {
+          e.preventDefault();
+          keysRef.current.add(key);
+          updateMovement();
+        }
       }
     };
 
@@ -151,7 +164,7 @@ export default function Game() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
-      if (phaseRef.current !== "combat") return;
+      if (phaseRef.current !== "combat" && phaseRef.current !== "targeting") return;
 
       keysRef.current.delete(key);
       updateMovement();
@@ -164,6 +177,10 @@ export default function Game() {
       window.removeEventListener("keyup", onKeyUp);
     };
   }, [dispatch, updateMovement]);
+
+  const handleWorldPointerDown = useCallback(() => {
+    // Pointer targeting stub — plug in reticleFromPointer later
+  }, []);
 
   const playerHpPct = (state.playerHP / PLAYER_MAX_HP) * 100;
   const bossHpPct = (state.enemyHP / state.bossMaxHp) * 100;
@@ -180,12 +197,22 @@ export default function Game() {
     return styles.hpLow;
   };
 
-  const inCombat = state.phase === "combat" || state.phase === "input";
+  const inCombat =
+    state.phase === "combat" ||
+    state.phase === "input" ||
+    state.phase === "targeting";
 
   return (
     <div className={styles.gameRoot}>
       <div className={`${styles.worldLayer} ${state.isSlowMotion ? styles.slowMotion : ""}`}>
-        <Battlefield isSlowMotion={state.isSlowMotion}>
+        <Battlefield
+          isSlowMotion={state.isSlowMotion}
+          mapId={state.mapId}
+          camera={state.camera}
+          viewport={state.arena}
+          worldSize={state.worldSize}
+          onWorldPointerDown={handleWorldPointerDown}
+        >
           {inCombat && (
             <>
               <EnemyBoss
@@ -199,6 +226,14 @@ export default function Game() {
                 hitFlash={state.enemyHitFlash}
                 isSlowMotion={state.isSlowMotion}
               />
+              {state.minions.map((minion) => (
+                <Minion
+                  key={minion.id}
+                  position={minion.position}
+                  hp={minion.hp}
+                  maxHp={minion.maxHp}
+                />
+              ))}
               {state.bossAoETarget && state.bossState === "windup" && state.bossActiveSkill === "pulse" && (
                 <div
                   className={styles.pulseTelegraph}
@@ -217,6 +252,14 @@ export default function Game() {
                 castingGlow={state.playerCastingGlow}
                 barrierActive={state.playerBarrierHits > 0}
               />
+              {state.phase === "targeting" &&
+                state.targetingReticle &&
+                state.pendingGroundSkillId && (
+                  <TargetReticle
+                    position={state.targetingReticle}
+                    pendingSkillId={state.pendingGroundSkillId}
+                  />
+                )}
               <SkillSystem projectiles={state.activeProjectiles} />
             </>
           )}
@@ -284,6 +327,11 @@ export default function Game() {
                     {formatCategoryButton("Arcane", "E", "arcane", state)}
                   </button>
                 </div>
+              )}
+              {state.phase === "targeting" && (
+                <p className={styles.targetingHint}>
+                  WASD aim · Enter confirm · Esc cancel
+                </p>
               )}
               <SkillInput
                 phase={state.phase}

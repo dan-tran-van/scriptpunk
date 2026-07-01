@@ -8,25 +8,15 @@
   background: $bg-arena;
 }
 
-.grid {
+.worldScroll {
   position: absolute;
-  inset: 0;
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 15px,
-      $grid-line 15px,
-      $grid-line 16px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 15px,
-      $grid-line 15px,
-      $grid-line 16px
-    );
-  pointer-events: none;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.grid {
+  display: none;
 }
 
 .entities {

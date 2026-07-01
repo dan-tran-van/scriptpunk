@@ -1,0 +1,47 @@
+.reticle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.crosshair {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #6cf;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(100, 200, 255, 0.8);
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background: #6cf;
+  }
+
+  &::before {
+    width: 2px;
+    height: 28px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  &::after {
+    width: 28px;
+    height: 2px;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.aoePreview {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 2px dashed rgba(100, 200, 255, 0.6);
+  border-radius: 50%;
+  background: rgba(100, 200, 255, 0.12);
+  pointer-events: none;
+}

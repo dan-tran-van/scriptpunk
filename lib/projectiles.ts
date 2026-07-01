@@ -12,6 +12,7 @@ import {
 import { distance, lerpVec2 } from "./geometry";
 import { appendLog, type GameState, type Projectile, type Vec2 } from "./gameState";
 import { restoreManaOnBossHit } from "./mana";
+import { applyMinionDamage } from "./minionAI";
 import { getLevelConfig } from "./levels";
 import type { BossSkill } from "./bossSkills";
 import type { PlayerSkill } from "./playerSkills";
@@ -110,6 +111,46 @@ export function spawnPlayerSkill(state: GameState, skill: PlayerSkill): GameStat
     default:
       return state;
   }
+
+  return {
+    ...state,
+    nextProjectileId: state.nextProjectileId + 1,
+    activeSkill: skill.name,
+    activeProjectiles: [...state.activeProjectiles, projectile],
+    playerCastingGlow: true,
+    playerCastingGlowMs: CAST_GLOW_MS,
+    combatLog: appendLog(state.combatLog, `Cast ${skill.name}!`),
+  };
+}
+
+export function spawnPlayerGroundSkill(
+  state: GameState,
+  skill: PlayerSkill,
+  target: Vec2,
+): GameState {
+  const aoeRadius = skill.aoeRadius ?? skill.range * RANGE_UNIT;
+  const pattern = skill.pattern === "ground_point" ? "ground_point" : "ground_aoe";
+
+  const projectile = makeProjectile(state, {
+    owner: "player",
+    skillName: skill.name,
+    damage: skill.damage,
+    animation: skill.animation,
+    pattern,
+    x: target.x,
+    y: target.y,
+    originX: target.x,
+    originY: target.y,
+    targetX: target.x,
+    targetY: target.y,
+    dirX: 0,
+    dirY: 0,
+    maxTravel: 0,
+    traveled: 0,
+    progress: 0,
+    range: skill.range,
+    aoeRadius,
+  });
 
   return {
     ...state,
@@ -324,23 +365,82 @@ function applyBossHit(state: GameState, damage: number, skillName: string): Game
   };
 }
 
+function findMinionCollision(state: GameState, pos: Vec2, hitbox: number): string | null {
+  for (const minion of state.minions) {
+    if (distance(pos, minion.position) < hitbox + 14) {
+      return minion.id;
+    }
+  }
+  return null;
+}
+
+function applyPlayerAoEAt(
+  state: GameState,
+  center: Vec2,
+  radius: number,
+  damage: number,
+  skillName: string,
+): GameState {
+  let next = state;
+  let hitBoss = false;
+  let hitAny = false;
+
+  const bossDist = distance(center, state.enemyPosition);
+  if (bossDist <= radius + BOSS_HITBOX) {
+    next = applyBossHit(next, damage, skillName);
+    hitBoss = true;
+    hitAny = true;
+  }
+
+  for (const minion of state.minions) {
+    const dist = distance(center, minion.position);
+    if (dist <= radius + 14) {
+      next = applyMinionDamage(next, minion.id, damage, skillName);
+      hitAny = true;
+    }
+  }
+
+  if (!hitAny) {
+    return { ...next, combatLog: appendLog(next.combatLog, `${skillName} missed!`) };
+  }
+  if (!hitBoss && state.minions.length > 0) {
+    // log already added by minion hits
+  }
+  return next;
+}
+
 function resolveProjectile(state: GameState, p: Projectile): GameState {
   const target = opponentPos(state, p.owner);
   const hitbox = opponentHitbox(p.owner);
 
   if (p.owner === "player") {
     if (p.pattern === "directional" || p.pattern === "targeted") {
+      const minionId = findMinionCollision(state, { x: p.x, y: p.y }, hitbox);
+      if (minionId) {
+        return applyMinionDamage(state, minionId, p.damage, p.skillName);
+      }
       if (collides(p, target, hitbox)) {
         return applyBossHit(state, p.damage, p.skillName);
       }
       return { ...state, combatLog: appendLog(state.combatLog, `${p.skillName} missed!`) };
     }
     if (p.pattern === "aoe_self") {
-      const dist = distance({ x: p.originX, y: p.originY }, target);
-      if (dist <= p.aoeRadius) {
-        return applyBossHit(state, p.damage, p.skillName);
-      }
-      return { ...state, combatLog: appendLog(state.combatLog, `${p.skillName} missed!`) };
+      return applyPlayerAoEAt(
+        state,
+        { x: p.originX, y: p.originY },
+        p.aoeRadius,
+        p.damage,
+        p.skillName,
+      );
+    }
+    if (p.pattern === "ground_point" || p.pattern === "ground_aoe") {
+      return applyPlayerAoEAt(
+        state,
+        { x: p.targetX, y: p.targetY },
+        p.aoeRadius,
+        p.damage,
+        p.skillName,
+      );
     }
   } else {
     if (p.pattern === "directional" || p.pattern === "targeted") {
@@ -380,6 +480,14 @@ export function tickProjectiles(state: GameState, deltaMs: number): GameState {
     if (p.pattern === "directional" || p.pattern === "targeted") {
       const target = opponentPos(next, p.owner);
       const hitbox = opponentHitbox(p.owner);
+      const minionId =
+        p.owner === "player"
+          ? findMinionCollision(next, { x: p.x, y: p.y }, hitbox)
+          : null;
+      if (minionId) {
+        next = applyMinionDamage(next, minionId, p.damage, p.skillName);
+        continue;
+      }
       if (collides(p, target, hitbox)) {
         next = resolveProjectile(next, p);
         continue;

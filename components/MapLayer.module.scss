@@ -1,0 +1,52 @@
+@use "../styles/variables" as *;
+
+.mapLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tile {
+  position: absolute;
+  box-sizing: border-box;
+}
+
+.floor {
+  background: #1a2e1a;
+  border: 1px solid rgba(40, 70, 40, 0.3);
+}
+
+.rock {
+  background: #4a4a52;
+  border: 1px solid #5a5a64;
+  border-radius: 4px;
+}
+
+.tree {
+  background: #1a2e1a;
+  border: 1px solid rgba(40, 70, 40, 0.3);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    background: radial-gradient(circle, #2d6b2d 0%, #1a4a1a 70%);
+    border-radius: 50%;
+  }
+}
+
+.house {
+  background: #5c3d2e;
+  border: 1px solid #7a5040;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 2px;
+    right: 2px;
+    height: 10px;
+    background: #8b4513;
+    clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  }
+}

@@ -6,7 +6,9 @@ import {
 import type { GameState, SkillCategory } from "./gameState";
 
 export function tickManaRegen(state: GameState, deltaMs: number): GameState {
-  if (state.phase !== "combat" && state.phase !== "input") return state;
+  if (state.phase !== "combat" && state.phase !== "input" && state.phase !== "targeting") {
+    return state;
+  }
   if (state.playerMana >= state.playerMaxMana) return state;
 
   return {

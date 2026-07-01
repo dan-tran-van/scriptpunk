@@ -79,6 +79,36 @@ export const playerSkills: PlayerSkill[] = [
     pattern: "aoe_self",
     aoeRadius: RANGE_UNIT * 2,
   },
+  {
+    id: "barrage",
+    name: "Barrage",
+    category: "assault",
+    damage: 35,
+    range: 4,
+    animation: "burst",
+    pattern: "ground_point",
+    aoeRadius: 28,
+  },
+  {
+    id: "meteor",
+    name: "Meteor",
+    category: "arcane",
+    damage: 40,
+    range: 5,
+    animation: "burst",
+    pattern: "ground_aoe",
+    aoeRadius: RANGE_UNIT * 1.5,
+  },
+  {
+    id: "glyph",
+    name: "Glyph",
+    category: "arcane",
+    damage: 25,
+    range: 4,
+    animation: "burst",
+    pattern: "ground_aoe",
+    aoeRadius: RANGE_UNIT * 2,
+  },
 ];
 
 export function getCategoryManaCost(category: SkillCategory): number {
