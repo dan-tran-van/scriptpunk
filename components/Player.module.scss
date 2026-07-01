@@ -1,0 +1,49 @@
+@use "../styles/variables" as *;
+@use "../styles/mixins" as *;
+
+.player {
+  position: absolute;
+  width: $sprite-size;
+  height: $sprite-size;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  animation: idleBob 2s ease-in-out infinite;
+}
+
+.sprite {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: $player-color;
+  @include pixel-border(rgba(88, 166, 255, 0.5));
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    width: 6px;
+    height: 6px;
+    background: #fff;
+    box-shadow: 12px 0 0 #fff;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+.hitFlash {
+  animation: hitFlash 0.2s ease, idleBob 2s ease-in-out infinite;
+}
+
+.castingGlow {
+  animation: castGlow 0.6s ease infinite, idleBob 2s ease-in-out infinite;
+}

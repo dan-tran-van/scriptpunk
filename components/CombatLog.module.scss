@@ -1,0 +1,45 @@
+@use "../styles/variables" as *;
+
+.log {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  width: 260px;
+  max-height: 160px;
+  padding: 8px 10px;
+  background: $panel-bg;
+  border: 1px solid $panel-border;
+  border-radius: 4px;
+  pointer-events: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.logHeader {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $text-muted;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.logList {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.logEntry {
+  font-size: 11px;
+  color: $text-primary;
+  line-height: 1.5;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+  &:last-child {
+    border-bottom: none;
+    color: $player-color;
+  }
+}

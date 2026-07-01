@@ -1,0 +1,29 @@
+// Colors
+$bg-dark: #0d1117;
+$bg-arena: #1a2332;
+$grid-line: rgba(255, 255, 255, 0.04);
+$text-primary: #e6edf3;
+$text-muted: #8b949e;
+
+$player-color: #58a6ff;
+$boss-color: #f85149;
+$projectile-color: #ffa657;
+$burst-color: #d2a8ff;
+$beam-color: #79c0ff;
+$shield-color: #3fb950;
+
+$hp-high: #3fb950;
+$hp-mid: #d29922;
+$hp-low: #f85149;
+
+$panel-bg: rgba(13, 17, 23, 0.85);
+$panel-border: rgba(255, 255, 255, 0.12);
+
+$glow-cast: rgba(88, 166, 255, 0.6);
+$glow-input: rgba(210, 168, 255, 0.5);
+$windup-color: rgba(248, 81, 73, 0.7);
+
+// Sizing
+$sprite-size: 32px;
+$boss-size: 48px;
+$hp-bar-height: 12px;

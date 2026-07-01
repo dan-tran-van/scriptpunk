@@ -1,0 +1,46 @@
+@use "../styles/variables" as *;
+@use "../styles/mixins" as *;
+
+.effect {
+  position: absolute;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.projectile {
+  transform: translate(-50%, -50%);
+  animation: projectilePulse 0.3s ease infinite;
+}
+
+.projectileCore {
+  width: 16px;
+  height: 16px;
+  background: $projectile-color;
+  border-radius: 50%;
+  @include glow(rgba(255, 166, 87, 0.8), 10px);
+  box-shadow: 0 0 12px $projectile-color;
+}
+
+.burst {
+  transform: translate(-50%, -50%);
+}
+
+.burstCore {
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle, $burst-color 0%, transparent 70%);
+  border: 2px solid $burst-color;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+
+.beamWrapper {
+  transform: translate(0, -50%);
+}
+
+.beam {
+  height: 6px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, $beam-color, transparent);
+  @include glow(rgba(121, 192, 255, 0.6), 6px);
+}

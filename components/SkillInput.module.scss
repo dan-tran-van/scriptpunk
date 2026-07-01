@@ -1,0 +1,67 @@
+@use "../styles/variables" as *;
+@use "../styles/mixins" as *;
+
+.inputForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: $panel-bg;
+  border: 2px solid $panel-border;
+  border-radius: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &.highlighted {
+    border-color: $glow-input;
+    @include glow($glow-input, 14px);
+  }
+}
+
+.input {
+  width: min(280px, 50vw);
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid $panel-border;
+  border-radius: 4px;
+  color: $text-primary;
+  font-size: 14px;
+  outline: none;
+
+  &:focus {
+    border-color: $player-color;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+    font-size: 12px;
+  }
+}
+
+.submitButton {
+  padding: 8px 16px;
+  background: rgba(210, 168, 255, 0.2);
+  border: 1px solid $burst-color;
+  color: $text-primary;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+
+  &:hover {
+    background: rgba(210, 168, 255, 0.35);
+  }
+}
+
+.cancelButton {
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid $panel-border;
+  color: $text-muted;
+  font-size: 11px;
+  border-radius: 4px;
+
+  &:hover {
+    color: $text-primary;
+    border-color: $text-muted;
+  }
+}

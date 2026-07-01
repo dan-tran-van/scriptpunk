@@ -1,0 +1,59 @@
+@use "../styles/variables" as *;
+@use "../styles/mixins" as *;
+
+.battlefield {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: $bg-arena;
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 15px,
+      $grid-line 15px,
+      $grid-line 16px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 15px,
+      $grid-line 15px,
+      $grid-line 16px
+    );
+  pointer-events: none;
+}
+
+.entities {
+  position: absolute;
+  inset: 0;
+}
+
+.slowMotion {
+  .entities {
+    @include slow-motion-blur;
+    animation: slowBossAnim 3s ease-in-out infinite;
+  }
+}
+
+.dimOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+@keyframes slowBossAnim {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}

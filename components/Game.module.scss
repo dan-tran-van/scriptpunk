@@ -1,0 +1,183 @@
+@use "../styles/variables" as *;
+@use "../styles/mixins" as *;
+
+.gameRoot {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: $bg-dark;
+}
+
+.worldLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  &.slowMotion {
+  }
+}
+
+.hudLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.hudInteractive {
+  pointer-events: auto;
+}
+
+// Boss HP — top center
+.bossHud {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(320px, 60vw);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: $panel-bg;
+  border: 1px solid $panel-border;
+  border-radius: 4px;
+}
+
+.bossName {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $boss-color;
+  text-align: center;
+}
+
+// Player HP — bottom left
+.playerHud {
+  position: absolute;
+  bottom: 100px;
+  left: 16px;
+  width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: $panel-bg;
+  border: 1px solid $panel-border;
+  border-radius: 4px;
+}
+
+.hudLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $player-color;
+}
+
+.hpBarTrack {
+  height: $hp-bar-height;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid $panel-border;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.hpBarFill {
+  height: 100%;
+  transition: width 0.2s ease;
+  border-radius: 1px;
+
+  &.hpHigh {
+    background: $hp-high;
+  }
+  &.hpMid {
+    background: $hp-mid;
+  }
+  &.hpLow {
+    background: $hp-low;
+  }
+}
+
+.hpText {
+  font-size: 10px;
+  color: $text-muted;
+  text-align: right;
+}
+
+// Action strip — bottom center
+.actionStrip {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.castButton {
+  padding: 10px 24px;
+  background: rgba(88, 166, 255, 0.15);
+  border: 2px solid $player-color;
+  color: $text-primary;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 4px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(88, 166, 255, 0.3);
+    @include glow($glow-cast, 8px);
+  }
+}
+
+// Overlays — idle / result
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.overlayCard {
+  text-align: center;
+  padding: 40px 48px;
+  background: $panel-bg;
+  border: 2px solid $panel-border;
+  border-radius: 8px;
+  @include pixel-border($panel-border);
+}
+
+.title {
+  font-size: 28px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  color: $text-primary;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: $text-muted;
+  margin-bottom: 24px;
+}
+
+.primaryButton {
+  padding: 12px 32px;
+  background: rgba(63, 185, 80, 0.2);
+  border: 2px solid $hp-high;
+  color: $text-primary;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+
+  &:hover {
+    background: rgba(63, 185, 80, 0.35);
+    @include glow(rgba(63, 185, 80, 0.5), 8px);
+  }
+}
