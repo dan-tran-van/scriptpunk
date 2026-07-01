@@ -3,13 +3,11 @@ import {
   BOSS_ATTACK_MS,
   BOSS_DRIFT_INTERVAL_MS,
   BOSS_DRIFT_SPEED,
-  BOSS_MELEE_DAMAGE,
-  BOSS_MELEE_RANGE,
-  BOSS_WINDUP_MS,
-  HIT_FLASH_MS,
 } from "./constants";
-import { clampPosition, distance, randomPositionInArena } from "./geometry";
-import { appendLog, type GameState } from "./gameState";
+import { getBossSkillById, pickRandomBossSkill } from "./bossSkills";
+import { clampPosition, distance, normalizeInput, randomPositionInArena } from "./geometry";
+import { appendLog, type GameState, type Vec2 } from "./gameState";
+import { spawnBossSkill } from "./projectiles";
 
 export function tickEnemy(state: GameState, deltaMs: number): GameState {
   if (state.phase !== "combat" && state.phase !== "input") return state;
@@ -18,6 +16,12 @@ export function tickEnemy(state: GameState, deltaMs: number): GameState {
   let next = tickBossDrift(state, deltaMs);
   next = tickBossAttack(next, deltaMs);
   return next;
+}
+
+function directionToward(from: Vec2, to: Vec2) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  return normalizeInput(dx, dy);
 }
 
 function tickBossDrift(state: GameState, deltaMs: number): GameState {
@@ -33,12 +37,15 @@ function tickBossDrift(state: GameState, deltaMs: number): GameState {
     bossDriftTarget = randomPositionInArena(state.arena);
   }
 
+  let bossDirection = state.bossDirection;
+
   if (bossDriftTarget) {
     const dist = distance(enemyPosition, bossDriftTarget);
     if (dist < 4) {
       bossState = "idle";
       bossDriftTarget = null;
     } else {
+      bossDirection = directionToward(enemyPosition, bossDriftTarget);
       const step = Math.min(BOSS_DRIFT_SPEED * deltaMs, dist);
       enemyPosition = clampPosition(
         {
@@ -57,46 +64,37 @@ function tickBossDrift(state: GameState, deltaMs: number): GameState {
     bossDriftTarget,
     enemyPosition,
     bossState,
+    bossDirection,
   };
 }
 
 function tickBossAttack(state: GameState, deltaMs: number): GameState {
   let { bossAttackCooldown, bossWindupRemaining, bossAttackRemaining } = state;
-  const { bossState, playerHP, playerHitFlash, playerHitFlashMs, combatLog } = state;
+  const { bossState, combatLog } = state;
 
   if (bossState === "windup") {
     bossWindupRemaining -= deltaMs;
-    if (bossWindupRemaining <= 0) {
-      const inRange =
-        distance(state.enemyPosition, state.playerPosition) < BOSS_MELEE_RANGE;
-      let nextPlayerHP = playerHP;
-      let nextPlayerHitFlash = playerHitFlash;
-      let nextPlayerHitFlashMs = playerHitFlashMs;
-      let nextCombatLog = combatLog;
+    const skill = state.bossActiveSkill
+      ? getBossSkillById(state.bossActiveSkill)
+      : undefined;
 
-      if (inRange) {
-        nextPlayerHP = Math.max(0, playerHP - BOSS_MELEE_DAMAGE);
-        nextPlayerHitFlash = true;
-        nextPlayerHitFlashMs = HIT_FLASH_MS;
-        nextCombatLog = appendLog(
-          combatLog,
-          `Boss strikes you for ${BOSS_MELEE_DAMAGE} damage!`,
-        );
-      } else {
-        nextCombatLog = appendLog(combatLog, "Boss attack missed!");
-      }
+    if (bossWindupRemaining <= 0 && skill) {
+      const snapshot = { ...state.playerPosition };
+      const bossDirection = directionToward(state.enemyPosition, snapshot);
 
-      return {
+      let next: GameState = {
         ...state,
         bossState: "attacking",
         bossAttackRemaining: BOSS_ATTACK_MS,
         bossWindupRemaining: 0,
-        playerHP: nextPlayerHP,
-        playerHitFlash: nextPlayerHitFlash,
-        playerHitFlashMs: nextPlayerHitFlashMs,
-        combatLog: nextCombatLog,
+        bossDirection,
+        bossAoETarget: skill.pattern === "aoe_target" ? snapshot : null,
       };
+
+      next = spawnBossSkill(next, skill, snapshot);
+      return next;
     }
+
     return { ...state, bossWindupRemaining, bossState };
   }
 
@@ -107,6 +105,8 @@ function tickBossAttack(state: GameState, deltaMs: number): GameState {
         ...state,
         bossState: "idle",
         bossAttackCooldown: BOSS_ATTACK_COOLDOWN_MS,
+        bossActiveSkill: null,
+        bossAoETarget: null,
       };
     }
     return { ...state, bossAttackRemaining, bossState };
@@ -114,12 +114,23 @@ function tickBossAttack(state: GameState, deltaMs: number): GameState {
 
   bossAttackCooldown -= deltaMs;
   if (bossAttackCooldown <= 0) {
+    const skill = pickRandomBossSkill();
+    const bossDirection = directionToward(
+      state.enemyPosition,
+      state.playerPosition,
+    );
+    const bossAoETarget =
+      skill.pattern === "aoe_target" ? { ...state.playerPosition } : null;
+
     return {
       ...state,
       bossState: "windup",
-      bossWindupRemaining: BOSS_WINDUP_MS,
+      bossWindupRemaining: skill.windupMs,
       bossAttackCooldown: 0,
-      combatLog: appendLog(state.combatLog, "Boss is winding up an attack!"),
+      bossActiveSkill: skill.id,
+      bossDirection,
+      bossAoETarget,
+      combatLog: appendLog(combatLog, `Boss prepares ${skill.name}!`),
     };
   }
 

@@ -1,25 +1,36 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { GameAction, GamePhase } from "@/lib/gameState";
+import type { GameAction, GamePhase, SkillCategory } from "@/lib/gameState";
+import { getSkillsForCategory } from "@/lib/playerSkills";
 import styles from "./SkillInput.module.scss";
 
 type SkillInputProps = {
   phase: GamePhase;
+  activeCastCategory: SkillCategory | null;
   isSlowMotion: boolean;
   dispatch: (action: GameAction) => void;
 };
 
-export default function SkillInput({ phase, isSlowMotion, dispatch }: SkillInputProps) {
+export default function SkillInput({
+  phase,
+  activeCastCategory,
+  isSlowMotion,
+  dispatch,
+}: SkillInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (phase === "input") {
       inputRef.current?.focus();
     }
-  }, [phase]);
+  }, [phase, activeCastCategory]);
 
-  if (phase !== "input") return null;
+  if (phase !== "input" || !activeCastCategory) return null;
+
+  const skillNames = getSkillsForCategory(activeCastCategory)
+    .map((s) => s.name)
+    .join(", ");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +48,7 @@ export default function SkillInput({ phase, isSlowMotion, dispatch }: SkillInput
         ref={inputRef}
         type="text"
         className={styles.input}
-        placeholder="Type skill: Slash, Fireball, Shield..."
+        placeholder={`Type: ${skillNames}`}
         autoComplete="off"
         spellCheck={false}
       />

@@ -104,6 +104,54 @@
   text-align: right;
 }
 
+.manaLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: $beam-color;
+  margin-top: 4px;
+}
+
+.manaBarTrack {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid $panel-border;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.manaBarFill {
+  height: 100%;
+  background: $beam-color;
+  transition: width 0.2s ease;
+  border-radius: 1px;
+}
+
+.pulseTelegraph {
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px dashed rgba(248, 81, 73, 0.9);
+  background: rgba(248, 81, 73, 0.2);
+  animation: pulseTelegraph 0.6s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 3;
+}
+
+@keyframes pulseTelegraph {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
 // Action strip — bottom center
 .actionStrip {
   position: absolute;
@@ -116,20 +164,42 @@
   gap: 8px;
 }
 
-.castButton {
-  padding: 10px 24px;
-  background: rgba(88, 166, 255, 0.15);
-  border: 2px solid $player-color;
+.castButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.castButtonAssault {
+  padding: 10px 18px;
+  background: rgba(255, 166, 87, 0.15);
+  border: 2px solid $projectile-color;
   color: $text-primary;
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   border-radius: 4px;
   transition: background 0.15s;
 
   &:hover {
-    background: rgba(88, 166, 255, 0.3);
-    @include glow($glow-cast, 8px);
+    background: rgba(255, 166, 87, 0.3);
+    @include glow(rgba(255, 166, 87, 0.5), 8px);
+  }
+}
+
+.castButtonArcane {
+  padding: 10px 18px;
+  background: rgba(210, 168, 255, 0.15);
+  border: 2px solid $burst-color;
+  color: $text-primary;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(210, 168, 255, 0.3);
+    @include glow($glow-input, 8px);
   }
 }
 

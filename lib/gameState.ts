@@ -1,45 +1,68 @@
-import { BOSS_MAX_HP, PLAYER_MAX_HP } from "./constants";
+import { BOSS_MAX_HP, PLAYER_MAX_HP, PLAYER_MAX_MANA } from "./constants";
 import { getBossSpawn, getPlayerSpawn } from "./geometry";
 
 export type Vec2 = { x: number; y: number };
+export type Direction = Vec2;
 export type ArenaSize = { width: number; height: number };
 
 export type GamePhase = "idle" | "combat" | "input" | "result";
 export type BossState = "idle" | "moving" | "windup" | "attacking";
+export type SkillCategory = "assault" | "arcane";
 export type SkillAnimation = "projectile" | "burst" | "beam";
+export type SkillPattern =
+  | "directional"
+  | "targeted"
+  | "aoe_self"
+  | "aoe_target"
+  | "defensive";
 
 export type Projectile = {
   id: string;
+  owner: "player" | "boss";
   skillName: string;
   damage: number;
   animation: SkillAnimation;
+  pattern: SkillPattern;
   x: number;
   y: number;
   originX: number;
   originY: number;
   targetX: number;
   targetY: number;
+  dirX: number;
+  dirY: number;
+  maxTravel: number;
+  traveled: number;
   progress: number;
   range: number;
-  resolved: boolean;
+  aoeRadius: number;
 };
 
 export type GameState = {
   phase: GamePhase;
   playerHP: number;
   enemyHP: number;
+  playerMana: number;
+  playerMaxMana: number;
+  playerBarrierHits: number;
   playerPosition: Vec2;
   enemyPosition: Vec2;
+  playerDirection: Direction;
+  bossDirection: Direction;
   activeSkill: string | null;
+  activeCastCategory: SkillCategory | null;
   arena: ArenaSize;
   bossState: BossState;
   bossAttackCooldown: number;
   bossWindupRemaining: number;
   bossAttackRemaining: number;
+  bossActiveSkill: string | null;
+  bossAoETarget: Vec2 | null;
   bossDriftTimer: number;
   bossDriftTarget: Vec2 | null;
   activeProjectiles: Projectile[];
   nextProjectileId: number;
+  skillCooldowns: Record<string, number>;
   moveInput: Vec2;
   playerHitFlash: boolean;
   enemyHitFlash: boolean;
@@ -57,10 +80,12 @@ export type GameAction =
   | { type: "RESTART" }
   | { type: "RESIZE_ARENA"; width: number; height: number }
   | { type: "PLAYER_MOVE"; dx: number; dy: number }
-  | { type: "BEGIN_CAST" }
+  | { type: "BEGIN_CAST"; category: SkillCategory }
   | { type: "CANCEL_CAST" }
   | { type: "SUBMIT_SKILL"; input: string }
   | { type: "TICK"; deltaMs: number };
+
+const DEFAULT_DIRECTION: Direction = { x: 0, y: -1 };
 
 function appendLog(log: string[], message: string): string[] {
   const next = [...log, message];
@@ -72,18 +97,27 @@ export function createInitialState(arena: ArenaSize): GameState {
     phase: "idle",
     playerHP: PLAYER_MAX_HP,
     enemyHP: BOSS_MAX_HP,
+    playerMana: PLAYER_MAX_MANA,
+    playerMaxMana: PLAYER_MAX_MANA,
+    playerBarrierHits: 0,
     playerPosition: getPlayerSpawn(arena),
     enemyPosition: getBossSpawn(arena),
+    playerDirection: { ...DEFAULT_DIRECTION },
+    bossDirection: { ...DEFAULT_DIRECTION },
     activeSkill: null,
+    activeCastCategory: null,
     arena,
     bossState: "idle",
     bossAttackCooldown: 2000,
     bossWindupRemaining: 0,
     bossAttackRemaining: 0,
+    bossActiveSkill: null,
+    bossAoETarget: null,
     bossDriftTimer: 0,
     bossDriftTarget: null,
     activeProjectiles: [],
     nextProjectileId: 1,
+    skillCooldowns: {},
     moveInput: { x: 0, y: 0 },
     playerHitFlash: false,
     enemyHitFlash: false,
@@ -104,8 +138,9 @@ export function createCombatState(arena: ArenaSize): GameState {
     phase: "combat",
     playerPosition: getPlayerSpawn(arena),
     enemyPosition: getBossSpawn(arena),
+    playerMana: PLAYER_MAX_MANA,
     bossAttackCooldown: 1500,
-    combatLog: appendLog([], "Battle begins! Type skills to fight."),
+    combatLog: appendLog([], "Battle begins! [Q] Assault  [E] Arcane"),
   };
 }
 

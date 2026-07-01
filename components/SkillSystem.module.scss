@@ -21,6 +21,34 @@
   box-shadow: 0 0 12px $projectile-color;
 }
 
+.hostile .projectileCore {
+  background: $boss-color;
+  box-shadow: 0 0 12px $boss-color;
+  @include glow(rgba(248, 81, 73, 0.8), 10px);
+}
+
+.hostile .burstCore {
+  border-color: $boss-color;
+  background: radial-gradient(circle, rgba(248, 81, 73, 0.8) 0%, transparent 70%);
+}
+
+.hostile .beam {
+  background: linear-gradient(90deg, $boss-color, transparent);
+}
+
+.aoeTarget {
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid $burst-color;
+  background: radial-gradient(circle, rgba(210, 168, 255, 0.4) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hostile.aoeTarget {
+  border-color: $boss-color;
+  background: radial-gradient(circle, rgba(248, 81, 73, 0.35) 0%, transparent 70%);
+}
+
 .burst {
   transform: translate(-50%, -50%);
 }

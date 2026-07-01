@@ -8,14 +8,12 @@ type SkillSystemProps = {
 function BeamEffect({ p }: { p: Projectile }) {
   const length = Math.hypot(p.targetX - p.originX, p.targetY - p.originY);
   const angle = Math.atan2(p.targetY - p.originY, p.targetX - p.originX);
+  const hostile = p.owner === "boss";
 
   return (
     <div
-      className={`${styles.effect} ${styles.beamWrapper}`}
-      style={{
-        left: p.originX,
-        top: p.originY,
-      }}
+      className={`${styles.effect} ${styles.beamWrapper} ${hostile ? styles.hostile : ""}`}
+      style={{ left: p.originX, top: p.originY }}
     >
       <div
         className={styles.beam}
@@ -32,6 +30,23 @@ export default function SkillSystem({ projectiles }: SkillSystemProps) {
   return (
     <>
       {projectiles.map((p) => {
+        const hostile = p.owner === "boss";
+
+        if (p.pattern === "aoe_target") {
+          return (
+            <div
+              key={p.id}
+              className={`${styles.effect} ${styles.aoeTarget} ${hostile ? styles.hostile : ""}`}
+              style={{
+                left: p.x,
+                top: p.y,
+                width: p.aoeRadius * 2 * (0.3 + p.progress * 0.7),
+                height: p.aoeRadius * 2 * (0.3 + p.progress * 0.7),
+              }}
+            />
+          );
+        }
+
         if (p.animation === "beam") {
           return <BeamEffect key={p.id} p={p} />;
         }
@@ -39,11 +54,8 @@ export default function SkillSystem({ projectiles }: SkillSystemProps) {
         return (
           <div
             key={p.id}
-            className={`${styles.effect} ${styles[p.animation]}`}
-            style={{
-              left: p.x,
-              top: p.y,
-            }}
+            className={`${styles.effect} ${styles[p.animation]} ${hostile ? styles.hostile : ""}`}
+            style={{ left: p.x, top: p.y }}
           >
             {p.animation === "projectile" && <div className={styles.projectileCore} />}
             {p.animation === "burst" && (
