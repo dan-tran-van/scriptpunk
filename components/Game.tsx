@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createInitialState,
   gameReducer,
+  getCategoryCooldown,
+  isCategoryReady,
   type GameAction,
   type GameState,
 } from "@/lib/gameEngine";
@@ -23,11 +25,29 @@ function getArenaSize() {
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
-function beginCast(
+function formatCategoryButton(
+  label: string,
+  key: string,
+  category: SkillCategory,
+  state: GameState,
+): string {
+  const cd = getCategoryCooldown(state, category);
+  if (cd > 0) {
+    return `${label} [${key}] ${Math.ceil(cd / 1000)}s`;
+  }
+  if (!isCategoryReady(state, category)) {
+    return `${label} [${key}] —`;
+  }
+  return `${label} [${key}]`;
+}
+
+function tryBeginCast(
   keysRef: React.RefObject<Set<string>>,
   dispatch: (action: GameAction) => void,
   category: SkillCategory,
+  state: GameState,
 ) {
+  if (!isCategoryReady(state, category)) return;
   keysRef.current.clear();
   dispatch({ type: "PLAYER_MOVE", dx: 0, dy: 0 });
   dispatch({ type: "BEGIN_CAST", category });
@@ -39,10 +59,12 @@ export default function Game() {
   );
   const keysRef = useRef(new Set<string>());
   const phaseRef = useRef(state.phase);
+  const stateRef = useRef(state);
 
   useEffect(() => {
     phaseRef.current = state.phase;
-  }, [state.phase]);
+    stateRef.current = state;
+  }, [state]);
 
   const dispatch = useCallback((action: GameAction) => {
     setState((s) => gameReducer(s, action));
@@ -98,12 +120,12 @@ export default function Game() {
       if (phaseRef.current === "combat") {
         if (key === "q") {
           e.preventDefault();
-          beginCast(keysRef, dispatch, "assault");
+          tryBeginCast(keysRef, dispatch, "assault", stateRef.current);
           return;
         }
         if (key === "e") {
           e.preventDefault();
-          beginCast(keysRef, dispatch, "arcane");
+          tryBeginCast(keysRef, dispatch, "arcane", stateRef.current);
           return;
         }
       }
@@ -229,17 +251,19 @@ export default function Game() {
                 <div className={styles.castButtons}>
                   <button
                     type="button"
-                    className={styles.castButtonAssault}
-                    onClick={() => beginCast(keysRef, dispatch, "assault")}
+                    className={`${styles.castButtonAssault} ${!isCategoryReady(state, "assault") ? styles.disabled : ""}`}
+                    disabled={!isCategoryReady(state, "assault")}
+                    onClick={() => tryBeginCast(keysRef, dispatch, "assault", state)}
                   >
-                    Assault [Q]
+                    {formatCategoryButton("Assault", "Q", "assault", state)}
                   </button>
                   <button
                     type="button"
-                    className={styles.castButtonArcane}
-                    onClick={() => beginCast(keysRef, dispatch, "arcane")}
+                    className={`${styles.castButtonArcane} ${!isCategoryReady(state, "arcane") ? styles.disabled : ""}`}
+                    disabled={!isCategoryReady(state, "arcane")}
+                    onClick={() => tryBeginCast(keysRef, dispatch, "arcane", state)}
                   >
-                    Arcane [E]
+                    {formatCategoryButton("Arcane", "E", "arcane", state)}
                   </button>
                 </div>
               )}
@@ -247,6 +271,7 @@ export default function Game() {
                 phase={state.phase}
                 activeCastCategory={state.activeCastCategory}
                 isSlowMotion={state.isSlowMotion}
+                castInputRemainingMs={state.castInputRemainingMs}
                 dispatch={dispatch}
               />
             </div>

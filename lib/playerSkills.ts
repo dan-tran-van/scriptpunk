@@ -1,5 +1,6 @@
 import { RANGE_UNIT } from "./constants";
-import type { SkillAnimation, SkillCategory, SkillPattern } from "./gameState";
+import { canAffordMana, isSkillReady } from "./mana";
+import type { GameState, SkillAnimation, SkillCategory, SkillPattern } from "./gameState";
 
 export type PlayerSkill = {
   id: string;
@@ -107,4 +108,13 @@ export function getSkillsForCategory(category: SkillCategory): PlayerSkill[] {
 
 export function getSkillById(id: string): PlayerSkill | undefined {
   return playerSkills.find((s) => s.id === id);
+}
+
+export function hasCastableSkillInCategory(
+  state: GameState,
+  category: SkillCategory,
+): boolean {
+  return getSkillsForCategory(category).some(
+    (skill) => isSkillReady(state, skill.id) && canAffordMana(state, skill.manaCost),
+  );
 }

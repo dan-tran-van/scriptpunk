@@ -1,6 +1,53 @@
 @use "../styles/variables" as *;
 @use "../styles/mixins" as *;
 
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.timerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.timerLabel {
+  font-size: 12px;
+  font-weight: bold;
+  color: $beam-color;
+  min-width: 28px;
+  text-align: right;
+
+  &.urgent {
+    color: $boss-color;
+    animation: pulse 0.5s ease-in-out infinite;
+  }
+}
+
+.timerTrack {
+  flex: 1;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid $panel-border;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.timerFill {
+  height: 100%;
+  background: $beam-color;
+  transition: width 0.1s linear;
+  border-radius: 2px;
+
+  &.urgent {
+    background: $boss-color;
+  }
+}
+
 .inputForm {
   display: flex;
   gap: 8px;

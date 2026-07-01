@@ -1,4 +1,13 @@
-import { MOVE_SPEED } from "./constants";
+import { MOVE_SPEED, CAST_CATEGORY_COOLDOWN_MS } from "./constants";
+import {
+  beginCastChannel,
+  cancelCastChannel,
+  categoryLabel,
+  isCategoryReady,
+  startCategoryCooldown,
+  tickCastInputTimer,
+  tickCategoryCooldowns,
+} from "./castChannel";
 import { tickEnemy } from "./enemyAI";
 import { clampPosition, normalizeInput } from "./geometry";
 import {
@@ -15,13 +24,13 @@ import {
   createInitialState,
   type GameAction,
   type GameState,
-  type SkillCategory,
 } from "./gameState";
 import { spawnPlayerSkill, tickProjectiles } from "./projectiles";
 import { findSkillByInput } from "./playerSkills";
 
 export { createInitialState, createCombatState };
 export type { GameAction, GameState, SkillCategory } from "./gameState";
+export { isCategoryReady, getCategoryCooldown } from "./castChannel";
 
 function applyPlayerMovement(state: GameState, deltaMs: number): GameState {
   if (state.phase !== "combat") return state;
@@ -88,6 +97,7 @@ function checkPhaseResult(state: GameState): GameState {
       result: "victory",
       isSlowMotion: false,
       activeCastCategory: null,
+      castInputRemainingMs: 0,
       combatLog: appendLog(state.combatLog, "Victory! The boss is defeated."),
     };
   }
@@ -99,6 +109,7 @@ function checkPhaseResult(state: GameState): GameState {
       result: "defeat",
       isSlowMotion: false,
       activeCastCategory: null,
+      castInputRemainingMs: 0,
       combatLog: appendLog(state.combatLog, "Defeat... you have fallen."),
     };
   }
@@ -110,7 +121,11 @@ function handleTick(state: GameState, deltaMs: number): GameState {
   if (state.phase !== "combat" && state.phase !== "input") return state;
 
   const cappedDelta = Math.min(deltaMs, 50);
-  let next = applyPlayerMovement(state, cappedDelta);
+  let next = tickCategoryCooldowns(state, cappedDelta);
+  next = tickCastInputTimer(next, cappedDelta);
+  if (next.phase !== "input") {
+    next = applyPlayerMovement(next, cappedDelta);
+  }
   next = tickManaRegen(next, cappedDelta);
   next = tickSkillCooldowns(next, cappedDelta);
   next = tickEnemy(next, cappedDelta);
@@ -118,10 +133,6 @@ function handleTick(state: GameState, deltaMs: number): GameState {
   next = decayVisualFlags(next, cappedDelta);
   next = checkPhaseResult(next);
   return next;
-}
-
-function categoryLabel(category: SkillCategory): string {
-  return category === "assault" ? "Assault" : "Arcane";
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -153,26 +164,31 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "BEGIN_CAST": {
       if (state.phase !== "combat") return state;
-      return {
-        ...state,
-        phase: "input",
-        isSlowMotion: true,
-        activeCastCategory: action.category,
-        moveInput: { x: 0, y: 0 },
-        combatLog: appendLog(
-          state.combatLog,
-          `Slow motion... type a ${categoryLabel(action.category)} skill.`,
-        ),
-      };
+
+      if (!isCategoryReady(state, action.category)) {
+        const onCd = (state.categoryCooldowns[action.category] ?? 0) > 0;
+        const message = onCd
+          ? `${categoryLabel(action.category)} not ready yet.`
+          : `No ${categoryLabel(action.category).toLowerCase()} skills available.`;
+        return { ...state, combatLog: appendLog(state.combatLog, message) };
+      }
+
+      return beginCastChannel(
+        {
+          ...state,
+          combatLog: appendLog(
+            state.combatLog,
+            `Slow motion... type a ${categoryLabel(action.category).toLowerCase()} skill.`,
+          ),
+        },
+        action.category,
+      );
     }
 
     case "CANCEL_CAST":
       if (state.phase !== "input") return state;
       return {
-        ...state,
-        phase: "combat",
-        isSlowMotion: false,
-        activeCastCategory: null,
+        ...cancelCastChannel(state),
         combatLog: appendLog(state.combatLog, "Cast cancelled."),
       };
 
@@ -182,20 +198,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const skill = findSkillByInput(action.input, state.activeCastCategory);
       if (!skill) {
         return {
-          ...state,
-          phase: "combat",
-          isSlowMotion: false,
-          activeCastCategory: null,
+          ...cancelCastChannel(state),
           combatLog: appendLog(state.combatLog, `Unknown skill: "${action.input}"`),
         };
       }
 
       if (!canAffordMana(state, skill.manaCost)) {
         return {
-          ...state,
-          phase: "combat",
-          isSlowMotion: false,
-          activeCastCategory: null,
+          ...cancelCastChannel(state),
           combatLog: appendLog(
             state.combatLog,
             `Not enough mana for ${skill.name} (need ${skill.manaCost}).`,
@@ -205,20 +215,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
       if (!isSkillReady(state, skill.id)) {
         return {
-          ...state,
-          phase: "combat",
-          isSlowMotion: false,
-          activeCastCategory: null,
+          ...cancelCastChannel(state),
           combatLog: appendLog(state.combatLog, `${skill.name} is on cooldown.`),
         };
       }
 
-      let next = spawnPlayerSkill(
-        { ...state, phase: "combat", isSlowMotion: false, activeCastCategory: null },
-        skill,
-      );
+      let next = spawnPlayerSkill(cancelCastChannel(state), skill);
       next = spendMana(next, skill.manaCost);
       next = startCooldown(next, skill.id, skill.cooldownMs);
+      next = startCategoryCooldown(next, state.activeCastCategory, CAST_CATEGORY_COOLDOWN_MS);
       next = checkPhaseResult(next);
       return next;
     }

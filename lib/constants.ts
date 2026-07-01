@@ -3,8 +3,12 @@ export const BOSS_MAX_HP = 200;
 export const BOSS_NAME = "Void Titan";
 
 export const PLAYER_MAX_MANA = 100;
-export const MANA_REGEN_PER_MS = 0.015;
-export const MANA_RESTORE_ON_BOSS_HIT = 15;
+export const MANA_REGEN_PER_MS = 0.006;
+export const MANA_RESTORE_ON_BOSS_HIT = 8;
+
+export const CAST_INPUT_TIMEOUT_MS = 5000;
+export const CAST_CATEGORY_COOLDOWN_MS = 3000;
+export const CAST_FIZZLE_CATEGORY_CD_MS = 1500;
 
 export const MOVE_SPEED = 0.24;
 export const HIT_RADIUS = 32;

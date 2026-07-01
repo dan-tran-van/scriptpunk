@@ -63,6 +63,8 @@ export type GameState = {
   activeProjectiles: Projectile[];
   nextProjectileId: number;
   skillCooldowns: Record<string, number>;
+  categoryCooldowns: Record<SkillCategory, number>;
+  castInputRemainingMs: number;
   moveInput: Vec2;
   playerHitFlash: boolean;
   enemyHitFlash: boolean;
@@ -86,6 +88,11 @@ export type GameAction =
   | { type: "TICK"; deltaMs: number };
 
 const DEFAULT_DIRECTION: Direction = { x: 0, y: -1 };
+
+export const EMPTY_CATEGORY_COOLDOWNS: Record<SkillCategory, number> = {
+  assault: 0,
+  arcane: 0,
+};
 
 function appendLog(log: string[], message: string): string[] {
   const next = [...log, message];
@@ -118,6 +125,8 @@ export function createInitialState(arena: ArenaSize): GameState {
     activeProjectiles: [],
     nextProjectileId: 1,
     skillCooldowns: {},
+    categoryCooldowns: { ...EMPTY_CATEGORY_COOLDOWNS },
+    castInputRemainingMs: 0,
     moveInput: { x: 0, y: 0 },
     playerHitFlash: false,
     enemyHitFlash: false,
