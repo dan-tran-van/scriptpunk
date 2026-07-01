@@ -1,17 +1,15 @@
 import {
-  BOSS_ATTACK_COOLDOWN_MS,
   BOSS_ATTACK_MS,
   BOSS_DRIFT_INTERVAL_MS,
-  BOSS_DRIFT_SPEED,
 } from "./constants";
-import { getBossSkillById, pickRandomBossSkill } from "./bossSkills";
+import { getBossSkillById, pickRandomBossSkillFromPool } from "./bossSkills";
 import { clampPosition, distance, normalizeInput, randomPositionInArena } from "./geometry";
 import { appendLog, type GameState, type Vec2 } from "./gameState";
+import { getLevelConfig } from "./levels";
 import { spawnBossSkill } from "./projectiles";
 
 export function tickEnemy(state: GameState, deltaMs: number): GameState {
   if (state.phase !== "combat" && state.phase !== "input") return state;
-  if (state.phase === "input") return state;
 
   let next = tickBossDrift(state, deltaMs);
   next = tickBossAttack(next, deltaMs);
@@ -25,6 +23,7 @@ function directionToward(from: Vec2, to: Vec2) {
 }
 
 function tickBossDrift(state: GameState, deltaMs: number): GameState {
+  const config = getLevelConfig(state.level);
   let { bossDriftTimer, bossDriftTarget, enemyPosition, bossState } = state;
 
   if (bossState === "windup" || bossState === "attacking") {
@@ -46,7 +45,7 @@ function tickBossDrift(state: GameState, deltaMs: number): GameState {
       bossDriftTarget = null;
     } else {
       bossDirection = directionToward(enemyPosition, bossDriftTarget);
-      const step = Math.min(BOSS_DRIFT_SPEED * deltaMs, dist);
+      const step = Math.min(config.bossDriftSpeed * deltaMs, dist);
       enemyPosition = clampPosition(
         {
           x: enemyPosition.x + ((bossDriftTarget.x - enemyPosition.x) / dist) * step,
@@ -69,6 +68,7 @@ function tickBossDrift(state: GameState, deltaMs: number): GameState {
 }
 
 function tickBossAttack(state: GameState, deltaMs: number): GameState {
+  const config = getLevelConfig(state.level);
   let { bossAttackCooldown, bossWindupRemaining, bossAttackRemaining } = state;
   const { bossState, combatLog } = state;
 
@@ -104,7 +104,7 @@ function tickBossAttack(state: GameState, deltaMs: number): GameState {
       return {
         ...state,
         bossState: "idle",
-        bossAttackCooldown: BOSS_ATTACK_COOLDOWN_MS,
+        bossAttackCooldown: config.bossAttackCooldownMs,
         bossActiveSkill: null,
         bossAoETarget: null,
       };
@@ -114,7 +114,7 @@ function tickBossAttack(state: GameState, deltaMs: number): GameState {
 
   bossAttackCooldown -= deltaMs;
   if (bossAttackCooldown <= 0) {
-    const skill = pickRandomBossSkill();
+    const skill = pickRandomBossSkillFromPool(config.bossSkillIds);
     const bossDirection = directionToward(
       state.enemyPosition,
       state.playerPosition,

@@ -5,12 +5,15 @@ import {
   createInitialState,
   gameReducer,
   getCategoryCooldown,
+  getLaneSkillCooldown,
+  getLevelConfig,
   isCategoryReady,
+  MAX_LEVEL,
   type GameAction,
   type GameState,
 } from "@/lib/gameEngine";
 import type { SkillCategory } from "@/lib/gameState";
-import { BOSS_MAX_HP, BOSS_NAME, PLAYER_MAX_HP } from "@/lib/constants";
+import { PLAYER_MAX_HP } from "@/lib/constants";
 import Battlefield from "./Battlefield";
 import Player from "./Player";
 import EnemyBoss from "./EnemyBoss";
@@ -31,7 +34,10 @@ function formatCategoryButton(
   category: SkillCategory,
   state: GameState,
 ): string {
-  const cd = getCategoryCooldown(state, category);
+  const cd = Math.max(
+    getCategoryCooldown(state, category),
+    getLaneSkillCooldown(state, category),
+  );
   if (cd > 0) {
     return `${label} [${key}] ${Math.ceil(cd / 1000)}s`;
   }
@@ -57,6 +63,7 @@ export default function Game() {
   const [state, setState] = useState<GameState>(() =>
     createInitialState({ width: 800, height: 600 }),
   );
+  const [selectedLevel, setSelectedLevel] = useState(1);
   const keysRef = useRef(new Set<string>());
   const phaseRef = useRef(state.phase);
   const stateRef = useRef(state);
@@ -159,8 +166,13 @@ export default function Game() {
   }, [dispatch, updateMovement]);
 
   const playerHpPct = (state.playerHP / PLAYER_MAX_HP) * 100;
-  const bossHpPct = (state.enemyHP / BOSS_MAX_HP) * 100;
-  const manaPct = (state.playerMana / state.playerMaxMana) * 100;
+  const bossHpPct = (state.enemyHP / state.bossMaxHp) * 100;
+  const levelConfig = getLevelConfig(state.phase === "idle" ? selectedLevel : state.level);
+  const displayMana = Math.round(state.playerMana);
+  const manaPct = Math.min(
+    100,
+    Math.max(0, (displayMana / state.playerMaxMana) * 100),
+  );
 
   const hpColor = (pct: number) => {
     if (pct > 50) return styles.hpHigh;
@@ -183,6 +195,7 @@ export default function Game() {
                 bossActiveSkill={state.bossActiveSkill}
                 bossDirection={state.bossDirection}
                 bossAoETarget={state.bossAoETarget}
+                bossMeleeRange={levelConfig.bossMeleeRange}
                 hitFlash={state.enemyHitFlash}
                 isSlowMotion={state.isSlowMotion}
               />
@@ -192,6 +205,8 @@ export default function Game() {
                   style={{
                     left: state.bossAoETarget.x,
                     top: state.bossAoETarget.y,
+                    width: levelConfig.bossMeleeRange * 2,
+                    height: levelConfig.bossMeleeRange * 2,
                   }}
                 />
               )}
@@ -212,7 +227,10 @@ export default function Game() {
         {inCombat && (
           <>
             <div className={styles.bossHud}>
-              <span className={styles.bossName}>{BOSS_NAME}</span>
+              <span className={styles.levelHudLabel}>
+                Level {state.level}: {levelConfig.title}
+              </span>
+              <span className={styles.bossName}>{levelConfig.bossName}</span>
               <div className={styles.hpBarTrack}>
                 <div
                   className={`${styles.hpBarFill} ${hpColor(bossHpPct)}`}
@@ -220,7 +238,7 @@ export default function Game() {
                 />
               </div>
               <span className={styles.hpText}>
-                {state.enemyHP} / {BOSS_MAX_HP}
+                {state.enemyHP} / {state.bossMaxHp}
               </span>
             </div>
 
@@ -240,7 +258,7 @@ export default function Game() {
                 <div className={styles.manaBarFill} style={{ width: `${manaPct}%` }} />
               </div>
               <span className={styles.hpText}>
-                {Math.floor(state.playerMana)} / {state.playerMaxMana}
+                {displayMana} / {state.playerMaxMana}
               </span>
             </div>
 
@@ -283,10 +301,25 @@ export default function Game() {
             <div className={styles.overlayCard}>
               <h1 className={styles.title}>Scriptpunk</h1>
               <p className={styles.subtitle}>Language is your weapon.</p>
+              <p className={styles.levelPickLabel}>
+                Level {selectedLevel}: {getLevelConfig(selectedLevel).title}
+              </p>
+              <div className={styles.levelSelectRow}>
+                {Array.from({ length: MAX_LEVEL }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={`${styles.levelButton} ${selectedLevel === n ? styles.levelButtonActive : ""}`}
+                    onClick={() => setSelectedLevel(n)}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 className={styles.primaryButton}
-                onClick={() => dispatch({ type: "START_BATTLE" })}
+                onClick={() => dispatch({ type: "START_BATTLE", level: selectedLevel })}
               >
                 Start Battle
               </button>
@@ -302,16 +335,38 @@ export default function Game() {
               </h1>
               <p className={styles.subtitle}>
                 {state.result === "victory"
-                  ? "The Void Titan has fallen."
-                  : "The battlefield claims another soul."}
+                  ? state.level >= MAX_LEVEL
+                    ? "Campaign complete! The Void Titan is no more."
+                    : `Level ${state.level} cleared. Ready for the next challenge?`
+                  : `Level ${state.level} — try again.`}
               </p>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={() => dispatch({ type: "RESTART" })}
-              >
-                Restart
-              </button>
+              <div className={styles.resultActions}>
+                {state.result === "victory" && state.level < MAX_LEVEL && (
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => dispatch({ type: "NEXT_LEVEL" })}
+                  >
+                    Next Level
+                  </button>
+                )}
+                {state.result === "defeat" && (
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => dispatch({ type: "RETRY_LEVEL" })}
+                  >
+                    Retry
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => dispatch({ type: "RESTART" })}
+                >
+                  {state.result === "victory" && state.level >= MAX_LEVEL ? "Restart" : "Menu"}
+                </button>
+              </div>
             </div>
           </div>
         )}

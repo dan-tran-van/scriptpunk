@@ -1,5 +1,11 @@
-import { RANGE_UNIT } from "./constants";
-import { canAffordMana, isSkillReady } from "./mana";
+import {
+  ARCANE_LANE_COOLDOWN_MS,
+  ARCANE_MANA_COST,
+  ASSAULT_LANE_COOLDOWN_MS,
+  ASSAULT_MANA_COST,
+  RANGE_UNIT,
+} from "./constants";
+import { canAffordMana, isLaneSkillReady } from "./mana";
 import type { GameState, SkillAnimation, SkillCategory, SkillPattern } from "./gameState";
 
 export type PlayerSkill = {
@@ -7,8 +13,6 @@ export type PlayerSkill = {
   name: string;
   category: SkillCategory;
   damage: number;
-  manaCost: number;
-  cooldownMs: number;
   range: number;
   animation: SkillAnimation;
   pattern: SkillPattern;
@@ -22,8 +26,6 @@ export const playerSkills: PlayerSkill[] = [
     name: "Spark",
     category: "assault",
     damage: 18,
-    manaCost: 12,
-    cooldownMs: 2000,
     range: 4,
     animation: "projectile",
     pattern: "directional",
@@ -34,8 +36,6 @@ export const playerSkills: PlayerSkill[] = [
     name: "Cleave",
     category: "assault",
     damage: 28,
-    manaCost: 18,
-    cooldownMs: 4000,
     range: 1,
     animation: "burst",
     pattern: "aoe_self",
@@ -46,8 +46,6 @@ export const playerSkills: PlayerSkill[] = [
     name: "Charge",
     category: "assault",
     damage: 32,
-    manaCost: 22,
-    cooldownMs: 5000,
     range: 5,
     animation: "projectile",
     pattern: "directional",
@@ -58,8 +56,6 @@ export const playerSkills: PlayerSkill[] = [
     name: "Frostlance",
     category: "arcane",
     damage: 38,
-    manaCost: 25,
-    cooldownMs: 5000,
     range: 5,
     animation: "beam",
     pattern: "targeted",
@@ -69,8 +65,6 @@ export const playerSkills: PlayerSkill[] = [
     name: "Barrier",
     category: "arcane",
     damage: 0,
-    manaCost: 20,
-    cooldownMs: 6000,
     range: 0,
     animation: "burst",
     pattern: "defensive",
@@ -80,14 +74,20 @@ export const playerSkills: PlayerSkill[] = [
     name: "Nova",
     category: "arcane",
     damage: 42,
-    manaCost: 30,
-    cooldownMs: 8000,
     range: 2,
     animation: "burst",
     pattern: "aoe_self",
     aoeRadius: RANGE_UNIT * 2,
   },
 ];
+
+export function getCategoryManaCost(category: SkillCategory): number {
+  return category === "assault" ? ASSAULT_MANA_COST : ARCANE_MANA_COST;
+}
+
+export function getCategoryLaneCooldownMs(category: SkillCategory): number {
+  return category === "assault" ? ASSAULT_LANE_COOLDOWN_MS : ARCANE_LANE_COOLDOWN_MS;
+}
 
 export function findSkillByInput(
   input: string,
@@ -114,7 +114,8 @@ export function hasCastableSkillInCategory(
   state: GameState,
   category: SkillCategory,
 ): boolean {
-  return getSkillsForCategory(category).some(
-    (skill) => isSkillReady(state, skill.id) && canAffordMana(state, skill.manaCost),
+  return (
+    isLaneSkillReady(state, category) &&
+    canAffordMana(state, getCategoryManaCost(category))
   );
 }

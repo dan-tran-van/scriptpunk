@@ -3,7 +3,7 @@ import {
   MANA_RESTORE_ON_BOSS_HIT,
   PLAYER_MAX_MANA,
 } from "./constants";
-import type { GameState } from "./gameState";
+import type { GameState, SkillCategory } from "./gameState";
 
 export function tickManaRegen(state: GameState, deltaMs: number): GameState {
   if (state.phase !== "combat" && state.phase !== "input") return state;
@@ -39,8 +39,12 @@ export function canAffordMana(state: GameState, cost: number): boolean {
   return state.playerMana >= cost;
 }
 
-export function isSkillReady(state: GameState, skillId: string): boolean {
-  return (state.skillCooldowns[skillId] ?? 0) <= 0;
+export function getLaneSkillCooldown(state: GameState, category: SkillCategory): number {
+  return state.skillCooldowns[category] ?? 0;
+}
+
+export function isLaneSkillReady(state: GameState, category: SkillCategory): boolean {
+  return getLaneSkillCooldown(state, category) <= 0;
 }
 
 export function spendMana(state: GameState, cost: number): GameState {
@@ -50,10 +54,14 @@ export function spendMana(state: GameState, cost: number): GameState {
   };
 }
 
-export function startCooldown(state: GameState, skillId: string, ms: number): GameState {
+export function startLaneSkillCooldown(
+  state: GameState,
+  category: SkillCategory,
+  ms: number,
+): GameState {
   return {
     ...state,
-    skillCooldowns: { ...state.skillCooldowns, [skillId]: ms },
+    skillCooldowns: { ...state.skillCooldowns, [category]: ms },
   };
 }
 

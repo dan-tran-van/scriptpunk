@@ -1,4 +1,3 @@
-import { BOSS_MELEE_RANGE } from "@/lib/constants";
 import type { BossState, Direction, Vec2 } from "@/lib/gameState";
 import styles from "./EnemyBoss.module.scss";
 
@@ -9,6 +8,7 @@ type EnemyBossProps = {
   bossActiveSkill: string | null;
   bossDirection: Direction;
   bossAoETarget: Vec2 | null;
+  bossMeleeRange: number;
   hitFlash: boolean;
   isSlowMotion: boolean;
 };
@@ -19,6 +19,7 @@ export default function EnemyBoss({
   bossState,
   bossActiveSkill,
   bossDirection,
+  bossMeleeRange,
   hitFlash,
   isSlowMotion,
 }: EnemyBossProps) {
@@ -50,10 +51,10 @@ export default function EnemyBoss({
       {isWindup && skill === "slam" && (
         <div
           className={styles.aoeCircle}
-          style={{ width: BOSS_MELEE_RANGE * 2, height: BOSS_MELEE_RANGE * 2 }}
+          style={{ width: bossMeleeRange * 2, height: bossMeleeRange * 2 }}
         />
       )}
-      {isWindup && skill === "void_bolt" && (
+      {isWindup && (skill === "void_bolt" || skill === "ruin_beam") && (
         <div
           className={styles.boltLine}
           style={{ transform: `rotate(${boltAngle}rad)` }}

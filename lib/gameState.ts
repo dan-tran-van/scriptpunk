@@ -1,5 +1,6 @@
-import { BOSS_MAX_HP, PLAYER_MAX_HP, PLAYER_MAX_MANA } from "./constants";
+import { PLAYER_MAX_HP, PLAYER_MAX_MANA } from "./constants";
 import { getBossSpawn, getPlayerSpawn } from "./geometry";
+import { getLevelConfig } from "./levels";
 
 export type Vec2 = { x: number; y: number };
 export type Direction = Vec2;
@@ -75,10 +76,14 @@ export type GameState = {
   playerCastingGlowMs: number;
   combatLog: string[];
   result: "victory" | "defeat" | null;
+  level: number;
+  bossMaxHp: number;
 };
 
 export type GameAction =
-  | { type: "START_BATTLE" }
+  | { type: "START_BATTLE"; level?: number }
+  | { type: "NEXT_LEVEL" }
+  | { type: "RETRY_LEVEL" }
   | { type: "RESTART" }
   | { type: "RESIZE_ARENA"; width: number; height: number }
   | { type: "PLAYER_MOVE"; dx: number; dy: number }
@@ -100,10 +105,11 @@ function appendLog(log: string[], message: string): string[] {
 }
 
 export function createInitialState(arena: ArenaSize): GameState {
+  const levelConfig = getLevelConfig(1);
   return {
     phase: "idle",
     playerHP: PLAYER_MAX_HP,
-    enemyHP: BOSS_MAX_HP,
+    enemyHP: levelConfig.bossMaxHp,
     playerMana: PLAYER_MAX_MANA,
     playerMaxMana: PLAYER_MAX_MANA,
     playerBarrierHits: 0,
@@ -137,19 +143,28 @@ export function createInitialState(arena: ArenaSize): GameState {
     playerCastingGlowMs: 0,
     combatLog: [],
     result: null,
+    level: 1,
+    bossMaxHp: levelConfig.bossMaxHp,
   };
 }
 
-export function createCombatState(arena: ArenaSize): GameState {
+export function createCombatState(arena: ArenaSize, level: number): GameState {
+  const config = getLevelConfig(level);
   const base = createInitialState(arena);
   return {
     ...base,
     phase: "combat",
+    level: config.id,
+    bossMaxHp: config.bossMaxHp,
+    enemyHP: config.bossMaxHp,
     playerPosition: getPlayerSpawn(arena),
     enemyPosition: getBossSpawn(arena),
     playerMana: PLAYER_MAX_MANA,
-    bossAttackCooldown: 1500,
-    combatLog: appendLog([], "Battle begins! [Q] Assault  [E] Arcane"),
+    bossAttackCooldown: config.bossFirstAttackDelayMs,
+    combatLog: appendLog(
+      [],
+      `Level ${config.id}: ${config.title} — [Q] Assault  [E] Arcane`,
+    ),
   };
 }
 

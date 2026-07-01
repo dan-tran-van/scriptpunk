@@ -12,9 +12,9 @@ import { tickEnemy } from "./enemyAI";
 import { clampPosition, normalizeInput } from "./geometry";
 import {
   canAffordMana,
-  isSkillReady,
+  isLaneSkillReady,
   spendMana,
-  startCooldown,
+  startLaneSkillCooldown,
   tickManaRegen,
   tickSkillCooldowns,
 } from "./mana";
@@ -26,12 +26,15 @@ import {
   type GameState,
 } from "./gameState";
 import { spawnPlayerSkill, tickProjectiles } from "./projectiles";
-import { findSkillByInput } from "./playerSkills";
+import { findSkillByInput, getCategoryLaneCooldownMs, getCategoryManaCost } from "./playerSkills";
 import { getWorldDeltaMs } from "./timeScale";
+import { MAX_LEVEL } from "./levels";
 
 export { createInitialState, createCombatState };
 export type { GameAction, GameState, SkillCategory } from "./gameState";
 export { isCategoryReady, getCategoryCooldown } from "./castChannel";
+export { getLaneSkillCooldown } from "./mana";
+export { getLevelConfig, MAX_LEVEL } from "./levels";
 
 function applyPlayerMovement(state: GameState, deltaMs: number): GameState {
   if (state.phase !== "combat") return state;
@@ -99,7 +102,12 @@ function checkPhaseResult(state: GameState): GameState {
       isSlowMotion: false,
       activeCastCategory: null,
       castInputRemainingMs: 0,
-      combatLog: appendLog(state.combatLog, "Victory! The boss is defeated."),
+      combatLog: appendLog(
+        state.combatLog,
+        state.level < MAX_LEVEL
+          ? `Level ${state.level} complete!`
+          : "Victory! Campaign complete!",
+      ),
     };
   }
 
@@ -140,7 +148,16 @@ function handleTick(state: GameState, deltaMs: number): GameState {
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "START_BATTLE":
-      return createCombatState(state.arena);
+      return createCombatState(state.arena, action.level ?? state.level);
+
+    case "NEXT_LEVEL":
+      if (state.phase !== "result" || state.result !== "victory") return state;
+      if (state.level >= MAX_LEVEL) return state;
+      return createCombatState(state.arena, state.level + 1);
+
+    case "RETRY_LEVEL":
+      if (state.phase !== "result" || state.result !== "defeat") return state;
+      return createCombatState(state.arena, state.level);
 
     case "RESTART":
       return { ...createInitialState(state.arena), phase: "idle" };
@@ -197,7 +214,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "SUBMIT_SKILL": {
       if (state.phase !== "input" || !state.activeCastCategory) return state;
 
-      const skill = findSkillByInput(action.input, state.activeCastCategory);
+      const category = state.activeCastCategory;
+      const skill = findSkillByInput(action.input, category);
       if (!skill) {
         return {
           ...cancelCastChannel(state),
@@ -205,27 +223,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         };
       }
 
-      if (!canAffordMana(state, skill.manaCost)) {
+      const manaCost = getCategoryManaCost(category);
+
+      if (!canAffordMana(state, manaCost)) {
         return {
           ...cancelCastChannel(state),
           combatLog: appendLog(
             state.combatLog,
-            `Not enough mana for ${skill.name} (need ${skill.manaCost}).`,
+            `Not enough mana for ${categoryLabel(category)} (need ${manaCost}).`,
           ),
         };
       }
 
-      if (!isSkillReady(state, skill.id)) {
+      if (!isLaneSkillReady(state, category)) {
         return {
           ...cancelCastChannel(state),
-          combatLog: appendLog(state.combatLog, `${skill.name} is on cooldown.`),
+          combatLog: appendLog(
+            state.combatLog,
+            `${categoryLabel(category)} skills are on cooldown.`,
+          ),
         };
       }
 
       let next = spawnPlayerSkill(cancelCastChannel(state), skill);
-      next = spendMana(next, skill.manaCost);
-      next = startCooldown(next, skill.id, skill.cooldownMs);
-      next = startCategoryCooldown(next, state.activeCastCategory, CAST_CATEGORY_COOLDOWN_MS);
+      next = spendMana(next, manaCost);
+      next = startLaneSkillCooldown(next, category, getCategoryLaneCooldownMs(category));
+      next = startCategoryCooldown(next, category, CAST_CATEGORY_COOLDOWN_MS);
       next = checkPhaseResult(next);
       return next;
     }

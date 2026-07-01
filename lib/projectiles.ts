@@ -12,6 +12,7 @@ import {
 import { distance, lerpVec2 } from "./geometry";
 import { appendLog, type GameState, type Projectile, type Vec2 } from "./gameState";
 import { restoreManaOnBossHit } from "./mana";
+import { getLevelConfig } from "./levels";
 import type { BossSkill } from "./bossSkills";
 import type { PlayerSkill } from "./playerSkills";
 
@@ -129,7 +130,12 @@ export function spawnBossSkill(
   const originX = state.enemyPosition.x;
   const originY = state.enemyPosition.y;
   const dir = state.bossDirection;
-  const aoeRadius = skill.aoeRadius ?? BOSS_HITBOX;
+  const level = getLevelConfig(state.level);
+  const damage = Math.round(skill.damage * level.bossDamageScale);
+  const aoeRadius =
+    skill.pattern === "aoe_self" || skill.pattern === "aoe_target"
+      ? level.bossMeleeRange
+      : (skill.aoeRadius ?? BOSS_HITBOX);
 
   let projectile: Projectile;
 
@@ -139,7 +145,7 @@ export function spawnBossSkill(
       projectile = makeProjectile(state, {
         owner: "boss",
         skillName: skill.name,
-        damage: skill.damage,
+        damage,
         animation: skill.animation,
         pattern: "directional",
         x: originX,
@@ -162,7 +168,7 @@ export function spawnBossSkill(
       projectile = makeProjectile(state, {
         owner: "boss",
         skillName: skill.name,
-        damage: skill.damage,
+        damage,
         animation: skill.animation,
         pattern: "aoe_self",
         x: originX,
@@ -184,13 +190,35 @@ export function spawnBossSkill(
       projectile = makeProjectile(state, {
         owner: "boss",
         skillName: skill.name,
-        damage: skill.damage,
+        damage,
         animation: skill.animation,
         pattern: "aoe_target",
         x: snapshotTarget.x,
         y: snapshotTarget.y,
         originX: snapshotTarget.x,
         originY: snapshotTarget.y,
+        targetX: snapshotTarget.x,
+        targetY: snapshotTarget.y,
+        dirX: 0,
+        dirY: 0,
+        maxTravel: 0,
+        traveled: 0,
+        progress: 0,
+        range: 0,
+        aoeRadius,
+      });
+      break;
+    case "targeted":
+      projectile = makeProjectile(state, {
+        owner: "boss",
+        skillName: skill.name,
+        damage,
+        animation: skill.animation,
+        pattern: "targeted",
+        x: originX,
+        y: originY,
+        originX,
+        originY,
         targetX: snapshotTarget.x,
         targetY: snapshotTarget.y,
         dirX: 0,
