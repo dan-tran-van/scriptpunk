@@ -9,7 +9,7 @@
 
 .projectile {
   transform: translate(-50%, -50%);
-  animation: projectilePulse 0.3s ease infinite;
+  animation: projectilePulse calc(0.3s / var(--combat-time-scale, 1)) ease infinite;
 }
 
 .projectileCore {

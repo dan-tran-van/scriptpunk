@@ -7,18 +7,18 @@
   height: $boss-size;
   transform: translate(-50%, -50%);
   z-index: 4;
-  animation: idleBob 1.5s ease-in-out infinite;
+  animation: idleBob calc(1.5s / var(--combat-time-scale, 1)) ease-in-out infinite;
 
   &.striking {
-    animation: bossLunge 0.3s ease-out forwards;
+    animation: bossLunge calc(0.3s / var(--combat-time-scale, 1)) ease-out forwards;
   }
 }
 
 .slowAnim {
-  animation: idleBob 3s ease-in-out infinite;
+  animation: idleBob calc(1.5s / var(--combat-time-scale, 1)) ease-in-out infinite;
 
   &.striking {
-    animation: bossLunge 0.3s ease-out forwards;
+    animation: bossLunge calc(0.3s / var(--combat-time-scale, 1)) ease-out forwards;
   }
 }
 
@@ -31,7 +31,7 @@
   border-radius: 50%;
   border: 2px solid rgba(248, 81, 73, 0.8);
   background: rgba(248, 81, 73, 0.15);
-  animation: aoePulse 0.6s ease-in-out infinite;
+  animation: aoePulse calc(0.6s / var(--combat-time-scale, 1)) ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
 }
@@ -41,7 +41,7 @@
   inset: -16px;
   border: 3px solid $windup-color;
   border-radius: 50%;
-  animation: bossWindup 0.6s ease-in-out infinite;
+  animation: bossWindup calc(0.6s / var(--combat-time-scale, 1)) ease-in-out infinite;
   pointer-events: none;
   z-index: 2;
 }
@@ -57,7 +57,7 @@
   margin-top: -2px;
   z-index: 0;
   pointer-events: none;
-  animation: boltPulse 0.4s ease-in-out infinite;
+  animation: boltPulse calc(0.4s / var(--combat-time-scale, 1)) ease-in-out infinite;
 }
 
 @keyframes boltPulse {
@@ -79,7 +79,7 @@
   transform: translate(-50%, -50%);
   border: 3px solid rgba(255, 200, 50, 0.9);
   border-radius: 50%;
-  animation: shockwaveExpand 0.3s ease-out forwards;
+  animation: shockwaveExpand calc(0.3s / var(--combat-time-scale, 1)) ease-out forwards;
   pointer-events: none;
   z-index: 2;
 }

@@ -135,7 +135,7 @@
   border-radius: 50%;
   border: 2px dashed rgba(248, 81, 73, 0.9);
   background: rgba(248, 81, 73, 0.2);
-  animation: pulseTelegraph 0.6s ease-in-out infinite;
+  animation: pulseTelegraph calc(0.6s / var(--combat-time-scale, 1)) ease-in-out infinite;
   pointer-events: none;
   z-index: 3;
 }

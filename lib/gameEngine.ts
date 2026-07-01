@@ -27,6 +27,7 @@ import {
 } from "./gameState";
 import { spawnPlayerSkill, tickProjectiles } from "./projectiles";
 import { findSkillByInput } from "./playerSkills";
+import { getWorldDeltaMs } from "./timeScale";
 
 export { createInitialState, createCombatState };
 export type { GameAction, GameState, SkillCategory } from "./gameState";
@@ -121,6 +122,7 @@ function handleTick(state: GameState, deltaMs: number): GameState {
   if (state.phase !== "combat" && state.phase !== "input") return state;
 
   const cappedDelta = Math.min(deltaMs, 50);
+  const worldDelta = getWorldDeltaMs(state, cappedDelta);
   let next = tickCategoryCooldowns(state, cappedDelta);
   next = tickCastInputTimer(next, cappedDelta);
   if (next.phase !== "input") {
@@ -128,9 +130,9 @@ function handleTick(state: GameState, deltaMs: number): GameState {
   }
   next = tickManaRegen(next, cappedDelta);
   next = tickSkillCooldowns(next, cappedDelta);
-  next = tickEnemy(next, cappedDelta);
-  next = tickProjectiles(next, cappedDelta);
-  next = decayVisualFlags(next, cappedDelta);
+  next = tickEnemy(next, worldDelta);
+  next = tickProjectiles(next, worldDelta);
+  next = decayVisualFlags(next, worldDelta);
   next = checkPhaseResult(next);
   return next;
 }
